@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molara College - Exam Portal</title>
+    <meta name="description" content="Online examination system for Molara College students">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6",
+                        secondary: "#1d4ed8",
+                        accent: "#10b981"
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEXAMPLEEXAMPLEEXAMPLE",
+            authDomain: "molara-college-exam.firebaseapp.com",
+            databaseURL: "https://molara-college-exam-default-rtdb.firebaseio.com",
+            projectId: "molara-college-exam",
+            storageBucket: "molara-college-exam.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890abcdef"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md animate-slide-up">
+            <div class="text-center mb-6">
+                <img src="https://picsum.photos/150?random=10" alt="Molara College Logo" class="mx-auto h-20 w-20 rounded-full object-cover">
+                <h2 class="text-2xl font-bold text-gray-800 mt-4">Molara College</h2>
+                <p class="text-gray-600">Exam Portal Login</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-700 text-sm font-medium mb-2">Username</label>
+                    <input type="text" id="username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Enter username" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Enter password" required>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                        <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                    </div>
+                    <a href="#" class="text-sm text-primary hover:underline">Forgot password?</a>
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">Login</button>
+            </form>
+            <div class="mt-4 text-center text-sm text-gray-600">
+                Admin? <a href="#" id="adminLogin" class="text-primary hover:underline">Click here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden until login) -->
+    <div id="mainContent" class="hidden flex-1">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <img src="https://picsum.photos/40?random=11" alt="College Logo" class="h-10 w-10 rounded-full">
+                    <h1 class="text-xl font-bold text-gray-800">Molara College</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <div id="timer" class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">01:00:00</div>
+                    </div>
+                    <button id="logoutBtn" class="text-gray-600 hover:text-primary transition">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard -->
+        <main class="container mx-auto px-4 py-8 flex-1">
+            <div id="dashboard" class="animate-fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Welcome, <span id="studentName">Student</span></h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-primary hover:shadow-md transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Mathematics</h3>
+                        <p class="text-gray-600 mb-4">20 Questions</p>
+                        <button data-subject="math" class="start-exam-btn w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Start Exam</button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500 hover:shadow-md transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">English</h3>
+                        <p class="text-gray-600 mb-4">20 Questions</p>
+                        <button data-subject="english" class="start-exam-btn w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Start Exam</button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500 hover:shadow-md transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Chemistry</h3>
+                        <p class="text-gray-600 mb-4">20 Questions</p>
+                        <button data-subject="chemistry" class="start-exam-btn w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Start Exam</button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500 hover:shadow-md transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Government</h3>
+                        <p class="text-gray-600 mb-4">20 Questions</p>
+                        <button data-subject="government" class="start-exam-btn w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Start Exam</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Interface (hidden by default) -->
+            <div id="examInterface" class="hidden animate-fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800" id="examSubject">Mathematics Exam</h2>
+                    <div id="examTimer" class="bg-red-100 text-red-800 px-4 py-2 rounded-full font-medium">00:59:45</div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Instructions</h3>
+                        <span class="text-sm text-gray-500">Question <span id="currentQuestion">1</span> of 20</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Answer all questions. Each question carries equal marks. The timer will automatically submit your exam when time elapses.</p>
+                </div>
+
+                <div id="questionContainer" class="bg-white rounded-lg shadow p-6">
+                    <!-- Questions will be loaded here -->
+                </div>
+
+                <div class="flex justify-between mt-6">
+                    <button id="prevQuestion" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded transition disabled:opacity-50" disabled>Previous</button>
+                    <button id="nextQuestion" class="bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Next</button>
+                </div>
+            </div>
+
+            <!-- Admin Panel (hidden by default) -->
+            <div id="adminPanel" class="hidden animate-fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Admin Dashboard</h2>
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Exam Management</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2">Select Subject</label>
+                            <select id="adminSubject" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="math">Mathematics</option>
+                                <option value="english">English</option>
+                                <option value="chemistry">Chemistry</option>
+                                <option value="government">Government</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2">Action</label>
+                            <button id="manageQuestions" class="w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded transition">Manage Questions</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-100 py-6">
+            <div class="container mx-auto px-4 text-center text-gray-600">
+                <p>&copy; 2023 Molara College. All rights reserved.</p>
+                <p class="mt-2 text-sm">Powered by Ugoo</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+    </script>
+</body>
+<script src="assets/main.js"></script>
+</html>
